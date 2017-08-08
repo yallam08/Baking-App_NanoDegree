@@ -1,5 +1,6 @@
 package nano.yallam.bakingapp;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
@@ -20,9 +21,15 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import nano.yallam.bakingapp.api.BackendRequest;
 import nano.yallam.bakingapp.api.EndPoints;
+import nano.yallam.bakingapp.model.Ingredient;
 import nano.yallam.bakingapp.model.Recipe;
+import nano.yallam.bakingapp.model.Step;
 import retrofit2.Call;
 import retrofit2.Response;
+
+import nano.yallam.bakingapp.provider.DBContract.IngredientEntry;
+import nano.yallam.bakingapp.provider.DBContract.RecipeEntry;
+import nano.yallam.bakingapp.provider.DBContract.StepEntry;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<ArrayList<Recipe>> {
 
@@ -82,6 +89,42 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     Response<ArrayList<Recipe>> response = recipesCall.execute();
                     if (response != null && response.body() != null) {
                         returnRecipes.addAll(response.body());
+
+                        getContentResolver().delete(RecipeEntry.CONTENT_URI, null, null);
+                        getContentResolver().delete(StepEntry.CONTENT_URI, null, null);
+                        getContentResolver().delete(IngredientEntry.CONTENT_URI, null, null);
+
+                        for (Recipe recipe: returnRecipes) {
+                            ContentValues recipeContentValues = new ContentValues();
+                            recipeContentValues.put(RecipeEntry.COLUMN_RECIPE_ID, recipe.getId());
+                            recipeContentValues.put(RecipeEntry.COLUMN_NAME, recipe.getName());
+                            recipeContentValues.put(RecipeEntry.COLUMN_SERVINGS, recipe.getServings());
+                            recipeContentValues.put(RecipeEntry.COLUMN_IMAGE, recipe.getImage());
+
+                            getContentResolver().insert(RecipeEntry.CONTENT_URI, recipeContentValues);
+
+                            for (Step step: recipe.getSteps()) {
+                                ContentValues stepContentValues = new ContentValues();
+                                stepContentValues.put(StepEntry.COLUMN_STEP_ID, step.getId());
+                                stepContentValues.put(StepEntry.COLUMN_RECIPE_ID, recipe.getId());
+                                stepContentValues.put(StepEntry.COLUMN_SHORT_DESCRIPTION, step.getShortDescription());
+                                stepContentValues.put(StepEntry.COLUMN_DESCRIPTION, step.getDescription());
+                                stepContentValues.put(StepEntry.COLUMN_VIDEO_URL, step.getVideoURL());
+                                stepContentValues.put(StepEntry.COLUMN_THUMB_URL, step.getThumbnailURL());
+
+                                getContentResolver().insert(StepEntry.CONTENT_URI, stepContentValues);
+                            }
+
+                            for (Ingredient ingredient: recipe.getIngredients()) {
+                                ContentValues ingredientContentValues = new ContentValues();
+                                ingredientContentValues.put(IngredientEntry.COLUMN_RECIPE_ID, recipe.getId());
+                                ingredientContentValues.put(IngredientEntry.COLUMN_INGREDIENT, ingredient.getIngredient());
+                                ingredientContentValues.put(IngredientEntry.COLUMN_MEASURE, ingredient.getMeasure());
+                                ingredientContentValues.put(IngredientEntry.COLUMN_QUANTITY, ingredient.getQuantity());
+
+                                getContentResolver().insert(IngredientEntry.CONTENT_URI, ingredientContentValues);
+                            }
+                        }
                     }
                 } catch (IOException e) {
                     Log.d("Error", e.getMessage());

@@ -1,22 +1,23 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#09C"
+    android:background="#e4e4e4"
+    android:orientation="vertical"
     android:padding="@dimen/widget_margin">
 
-    <GridView
-        android:id="@+id/widget_recipes_grid_view"
+    <Button
+        android:id="@+id/btn_widget_return"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:numColumns="1"/>
-
-    <GridView
-        android:id="@+id/widget_ingredients_grid_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
         android:visibility="gone"
+        android:layout_height="wrap_content"
+        android:text="@string/txt_return"
+        android:drawableLeft="@android:drawable/ic_menu_revert"/>
+
+    <GridView
+        android:id="@+id/widget_grid_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:gravity="center"
         android:numColumns="1"/>
 
-</FrameLayout>
+</LinearLayout>

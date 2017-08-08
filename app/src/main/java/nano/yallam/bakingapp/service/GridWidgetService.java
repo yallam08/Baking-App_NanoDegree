@@ -3,35 +3,34 @@ package nano.yallam.bakingapp.service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
-import java.util.ArrayList;
 
 import nano.yallam.bakingapp.R;
-import nano.yallam.bakingapp.model.Recipe;
+import nano.yallam.bakingapp.provider.DBContract;
+
+import static nano.yallam.bakingapp.service.GridWidgetService.mRecipeId;
 
 
 public class GridWidgetService extends RemoteViewsService {
+    public static int mRecipeId = -1;
+
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
-        ArrayList<Recipe> recipes = new ArrayList<>();
-        if (intent.hasExtra(RecipesIngredientsService.EXTRA_RECIPES_LIST)) {
-            recipes = (ArrayList<Recipe>) intent.getSerializableExtra(RecipesIngredientsService.EXTRA_RECIPES_LIST);
-        }
-        return new GridRemoteViewsFactory(this.getApplicationContext(), recipes);
+        return new GridRemoteViewsFactory(this.getApplicationContext());
     }
 }
 
 class GridRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
 
-    Context mContext;
-    Cursor mCursor;
-    ArrayList<Recipe> mRecipes;
+    private Context mContext;
+    private Cursor mCursor;
 
-    public GridRemoteViewsFactory(Context applicationContext, ArrayList<Recipe> recipes) {
+
+    public GridRemoteViewsFactory(Context applicationContext) {
         mContext = applicationContext;
-        this.mRecipes = recipes;
     }
 
     @Override
@@ -42,16 +41,24 @@ class GridRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
     //called on start and when notifyAppWidgetViewDataChanged is called
     @Override
     public void onDataSetChanged() {
-        // Get all plant info ordered by creation time
-//        Uri PLANT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_PLANTS).build();
-//        if (mCursor != null) mCursor.close();
-//        mCursor = mContext.getContentResolver().query(
-//                PLANT_URI,
-//                null,
-//                null,
-//                null,
-//                PlantContract.PlantEntry.COLUMN_CREATION_TIME
-//        );
+        if (mCursor != null) mCursor.close();
+        if (mRecipeId >= 0) {
+            mCursor = mContext.getContentResolver().query(
+                    DBContract.IngredientEntry.CONTENT_URI,
+                    null,
+                    DBContract.IngredientEntry.COLUMN_RECIPE_ID + " = ?",
+                    new String[] {String.valueOf(mRecipeId)},
+                    null
+            );
+        } else {
+            mCursor = mContext.getContentResolver().query(
+                    DBContract.RecipeEntry.CONTENT_URI,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+        }
     }
 
     @Override
@@ -61,8 +68,8 @@ class GridRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
 
     @Override
     public int getCount() {
-        if (mRecipes == null) return 0;
-        return mRecipes.size();
+        if (mCursor == null) return 0;
+        return mCursor.getCount();
     }
 
     /**
@@ -73,25 +80,31 @@ class GridRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
      */
     @Override
     public RemoteViews getViewAt(int position) {
-        if (mRecipes == null || mRecipes.size() == 0) return null;
+        if (mCursor == null || mCursor.getCount() == 0 || position >= mCursor.getCount()) {
+            return null;
+        }
 
-        RemoteViews views = new RemoteViews(mContext.getPackageName(), R.layout.recipes_list_item);
+        mCursor.moveToPosition(position);
 
-        views.setTextViewText(R.id.tv_recipe_name, mRecipes.get(position).getName());
+        RemoteViews views = new RemoteViews(mContext.getPackageName(), R.layout.widget_list_item);
+        if (mRecipeId >= 0) {
+            String ingredientName = mCursor.getString(mCursor.getColumnIndex(DBContract.IngredientEntry.COLUMN_INGREDIENT));
+            views.setTextViewText(R.id.tv_widget_item_name, ingredientName);
+        } else {
+            String recipeName = mCursor.getString(mCursor.getColumnIndex(DBContract.RecipeEntry.COLUMN_NAME));
+            views.setTextViewText(R.id.tv_widget_item_name, recipeName);
 
-//        Bundle extras = new Bundle();
-//        extras.putLong(PlantDetailActivity.EXTRA_PLANT_ID, plantId);
-//        Intent fillInIntent = new Intent();
-//        fillInIntent.putExtras(extras);
-//        views.setOnClickFillInIntent(R.id.widget_plant_image, fillInIntent);
+            //get ingredients of clicked recipe item
+            Intent intent = new Intent();
+            Bundle extras = new Bundle();
+            int recipeId = mCursor.getInt(mCursor.getColumnIndex(DBContract.RecipeEntry.COLUMN_RECIPE_ID));
+            extras.putInt(RecipesIngredientsService.EXTRA_RECIPE_ID, recipeId);
+            intent.putExtras(extras);
+            views.setOnClickFillInIntent(R.id.tv_widget_item_name, intent);
+        }
 
         return views;
 
-    }
-
-    public void setmRecipesList(ArrayList<Recipe> recipes) {
-        this.mRecipes = recipes;
-        onDataSetChanged();
     }
 
     @Override
@@ -101,7 +114,7 @@ class GridRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
 
     @Override
     public int getViewTypeCount() {
-        return 1; // Treat all items in the GridView the same
+        return 1;
     }
 
     @Override

@@ -31,6 +31,11 @@
                 android:resource="@xml/ingredients_widget_provider_info" />
         </receiver>
 
+        <provider
+            android:authorities="nano.yallam.bakingapp"
+            android:name=".provider.DBProvider"
+            android:exported="true" />
+
         <service android:name=".service.RecipesIngredientsService" />
 
         <service
