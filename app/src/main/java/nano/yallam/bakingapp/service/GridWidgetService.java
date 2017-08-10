@@ -90,6 +90,7 @@ class GridRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
         if (mRecipeId >= 0) {
             String ingredientName = mCursor.getString(mCursor.getColumnIndex(DBContract.IngredientEntry.COLUMN_INGREDIENT));
             views.setTextViewText(R.id.tv_widget_item_name, ingredientName);
+            views.setOnClickFillInIntent(R.id.tv_widget_item_name, new Intent());
         } else {
             String recipeName = mCursor.getString(mCursor.getColumnIndex(DBContract.RecipeEntry.COLUMN_NAME));
             views.setTextViewText(R.id.tv_widget_item_name, recipeName);
